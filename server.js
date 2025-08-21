@@ -51,10 +51,13 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-    secret: 'un_secreto_muy_largo_y_dificil_de_adivinar',
+    secret: 'un_secreto_muy_largo_y_dificil_de_adivinar', // Cambia esto por una frase aleatoria
     resave: false,
     saveUninitialized: true,
-    cookie: { secure: false }
+    cookie: { 
+        secure: false, // Poner en true si usas HTTPS
+        maxAge: 1000 * 60 * 60 * 24 * 7 // <-- AÑADE ESTO: 7 días de sesión
+    }
 }));
 
 // --- MIDDLEWARE DE AUTENTICACIÓN ---

@@ -19,7 +19,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let adminData = {}; // Variable global para almacenar datos de admin
 
-// --- LÓGICA DE LOGIN Y AUTENTICACIÓN (NUEVO) ---
+// --- LÓGICA DE LOGIN Y AUTENTICACIÓN ---
 
 function setupAdminLoginForm() {
     document.getElementById('admin-login-form').addEventListener('submit', async (e) => {
@@ -33,7 +33,7 @@ function setupAdminLoginForm() {
                 body: JSON.stringify({ password })
             });
             if (!res.ok) throw new Error('Contraseña incorrecta.');
-            window.location.href = '/admin.html'; // Redirigir al panel
+            window.location.href = '/admin.html';
         } catch (error) {
             errorMessage.textContent = error.message;
             errorMessage.style.display = 'block';
@@ -42,14 +42,11 @@ function setupAdminLoginForm() {
 }
 
 async function checkAdminAuth() {
-    // Esta función se asegura de que solo un admin logueado pueda ver la data.
-    // Si la sesión no es válida, la API devolverá un error 401.
-    // El 'catch' nos redirigirá al login.
     try {
         const res = await fetch('/api/admin/data');
         if (res.status === 401) {
             window.location.href = '/admin_login.html';
-            return null; // Detiene la ejecución
+            return null;
         }
         if (!res.ok) throw new Error('No se pudieron cargar los datos del admin.');
         return await res.json();
@@ -69,7 +66,7 @@ async function logoutAdmin() {
 
 async function loadAdminData() {
     const data = await checkAdminAuth();
-    if (!data) return; // Si no hay data (porque no está autenticado), no hace nada.
+    if (!data) return;
     adminData = data;
 
     renderDashboardStats(adminData);
@@ -80,16 +77,25 @@ async function loadAdminData() {
 }
 
 function setupGlobalAdminListeners() {
-    // Listener para las pestañas
-    const tabButtons = document.querySelectorAll('.tab-button');
-    tabButtons.forEach(button => button.addEventListener('click', () => {
-        document.querySelector('.tab-button.active').classList.remove('active');
-        button.classList.add('active');
-        document.querySelector('.tab-content.active').classList.remove('active');
-        document.getElementById(button.dataset.target).classList.add('active');
-    }));
+    // --- NUEVA LÓGICA PARA NAVEGACIÓN INFERIOR ---
+    const navButtons = document.querySelectorAll('.nav-button');
+    const pageTitle = document.getElementById('page-title');
+    navButtons.forEach(button => {
+        button.addEventListener('click', () => {
+            // Gestionar el estado activo del botón
+            document.querySelector('.nav-button.active').classList.remove('active');
+            button.classList.add('active');
 
-    // Listener para el botón de logout (NUEVO)
+            // Mostrar el contenido correcto
+            document.querySelector('.tab-content.active').classList.remove('active');
+            document.getElementById(button.dataset.target).classList.add('active');
+            
+            // Actualizar el título de la página
+            pageTitle.textContent = button.dataset.title;
+        });
+    });
+
+    // Listener para el botón de logout
     document.getElementById('logout-btn').addEventListener('click', logoutAdmin);
 
     // Listeners para los formularios de creación
@@ -102,12 +108,12 @@ function setupGlobalAdminListeners() {
     document.body.addEventListener('click', handleActionClick);
     
     // Listeners para los filtros de búsqueda
-    ['assignments', 'accounts', 'clients', 'expired'].forEach(type => {
+    ['assignments', 'accounts', 'clients'].forEach(type => {
         const searchInput = document.getElementById(`search-${type}`);
         if(searchInput) searchInput.addEventListener('input', (e) => filterTable(e.target.value, `${type}-table`));
     });
     
-    // Filtros avanzados (NUEVO)
+    // Filtros avanzados
     document.getElementById('filter-assignments').addEventListener('change', (e) => {
         filterAssignmentTableByPayment(e.target.value);
     });
@@ -122,83 +128,94 @@ function renderDashboardStats({ clients, serviceAccounts, activeAssignments }) {
     const totalProfiles = serviceAccounts.reduce((sum, acc) => sum + acc.profiles.length, 0);
     const availableProfiles = totalProfiles - activeAssignments.length;
     document.getElementById('stats-container').innerHTML = `
-        <div class="stat-card"><h3>${clients.length}</h3><p>Clientes Totales</p></div>
-        <div class="stat-card"><h3>${activeAssignments.length}</h3><p>Perfiles Asignados</p></div>
-        <div class="stat-card"><h3>${availableProfiles}</h3><p>Perfiles Disponibles</p></div>
-        <div class="stat-card"><h3>${serviceAccounts.length}</h3><p>Cuentas de Servicio</p></div>
+        <div class="stat-card"><h3>${clients.length}</h3><p>Clientes</p></div>
+        <div class="stat-card"><h3>${activeAssignments.length}</h3><p>Asignados</p></div>
+        <div class="stat-card"><h3>${availableProfiles}</h3><p>Libres</p></div>
+        <div class="stat-card"><h3>${serviceAccounts.length}</h3><p>Cuentas</p></div>
     `;
 }
 
 function renderAllTables({ clients, serviceAccounts, activeAssignments, expiredAssignments }) {
-    // Tabla de Cuentas (con indicador de perfiles libres)
-    let accountsHtml = '<table><thead><tr><th>Estado</th><th>Nombre</th><th>Perfiles Libres</th><th>Acciones</th></tr></thead><tbody>';
+    // Tabla/Lista de Cuentas
+    let accountsHtml = '';
     serviceAccounts.forEach(acc => {
         const assignedOnThisAccount = activeAssignments.filter(a => a.serviceAccount?._id === acc._id).length;
         const totalProfiles = acc.profiles.length;
         const available = totalProfiles - assignedOnThisAccount;
-        accountsHtml += `<tr data-available="${available > 0 ? 'yes' : 'no'}">
-            <td><span class="status-dot ${acc.status.toLowerCase()}"></span>${acc.status}</td>
-            <td>${acc.name}</td>
-            <td><strong>${available}</strong> de ${totalProfiles}</td>
-            <td class="actions-cell">
+        accountsHtml += `
+        <div class="card" data-available="${available > 0 ? 'yes' : 'no'}">
+            <div class="card-header">
+                <div class="card-title">
+                    <span class="status-dot ${acc.status.toLowerCase()}"></span>
+                    ${acc.name}
+                </div>
+                <div class="card-pills">
+                    <span>${available} de ${totalProfiles} Libres</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p><strong>Email:</strong> ${acc.email}</p>
+            </div>
+            <div class="card-actions">
                 <button class="button-secondary edit-account" data-id="${acc._id}">Editar</button>
                 <button class="button-secondary toggle-status" data-id="${acc._id}">Estado</button>
                 <button class="button-danger delete-account" data-id="${acc._id}">Eliminar</button>
-            </td>
-        </tr>`;
+            </div>
+        </div>`;
     });
-    document.getElementById('accounts-table').innerHTML = accountsHtml + '</tbody></table>';
+    document.getElementById('accounts-table').innerHTML = accountsHtml;
 
-    // Tabla de Clientes
-    let clientsHtml = '<table><thead><tr><th>Nombre</th><th>WhatsApp</th><th>Notas</th><th>Acciones</th></tr></thead><tbody>';
+    // Tabla/Lista de Clientes
+    let clientsHtml = '';
     clients.forEach(c => {
-        clientsHtml += `<tr>
-            <td>${c.name}</td>
-            <td>${c.whatsapp}</td>
-            <td>${c.notes ? c.notes.substring(0, 20) + '...' : ''}</td>
-            <td class="actions-cell">
+        clientsHtml += `
+        <div class="card">
+            <div class="card-header">
+                <div class="card-title">${c.name}</div>
+            </div>
+            <div class="card-body">
+                <p><strong>WhatsApp:</strong> ${c.whatsapp}</p>
+                <p><strong>Notas:</strong> ${c.notes ? c.notes.substring(0, 40) + '...' : 'Sin notas'}</p>
+            </div>
+            <div class="card-actions">
                 <button class="button-secondary edit-client" data-id="${c._id}">Editar</button>
                 <button class="button-secondary view-history" data-id="${c._id}">Historial</button>
                 <button class="button-danger delete-client" data-id="${c._id}">Eliminar</button>
-            </td>
-        </tr>`;
+            </div>
+        </div>`;
     });
-    document.getElementById('clients-table').innerHTML = clientsHtml + '</tbody></table>';
+    document.getElementById('clients-table').innerHTML = clientsHtml;
     
-    // Tabla de Asignaciones (con estado de pago)
-    let assignmentsHtml = '<table><thead><tr><th>Cliente</th><th>Cuenta/Perfil</th><th>Vence</th><th>Pago</th><th>Acciones</th></tr></thead><tbody>';
+    // Tabla/Lista de Asignaciones
+    let assignmentsHtml = '';
     activeAssignments.forEach(a => {
         const paymentStatusClass = a.paymentStatus === 'Pagado' ? 'paid' : 'pending';
-        assignmentsHtml += `<tr data-payment="${a.paymentStatus.toLowerCase()}">
-            <td>${a.client?.name ||'N/A'}</td>
-            <td>${a.serviceAccount?.name || 'N/A'} - ${a.profileName}</td>
-            <td>${new Date(a.expiryDate).toLocaleDateString('es-PY')}</td>
-            <td><span class="payment-status ${paymentStatusClass}">${a.paymentStatus}</span></td>
-            <td class="actions-cell">
+        assignmentsHtml += `
+        <div class="card" data-payment="${a.paymentStatus.toLowerCase()}">
+            <div class="card-header">
+                <div class="card-title">${a.client?.name ||'N/A'}</div>
+                <div class="card-pills">
+                     <span class="payment-status ${paymentStatusClass}">${a.paymentStatus}</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <p><strong>Cuenta:</strong> ${a.serviceAccount?.name || 'N/A'} - ${a.profileName}</p>
+                <p><strong>Vence:</strong> ${new Date(a.expiryDate).toLocaleDateString('es-PY')}</p>
+            </div>
+            <div class="card-actions">
                 <button class="button-success renew-assignment" data-id="${a._id}">Renovar</button>
                 <button class="button-secondary toggle-payment" data-id="${a._id}">Pago</button>
                 <button class="button-danger delete-assignment" data-id="${a._id}">Eliminar</button>
-            </td>
-        </tr>`;
+            </div>
+        </div>`;
     });
-    document.getElementById('assignments-table').innerHTML = assignmentsHtml + '</tbody></table>';
-    
-    // Tabla de Expirados
-    let expiredHtml = '<table><thead><tr><th>Cliente</th><th>Cuenta/Perfil</th><th>Venció el</th></tr></thead><tbody>';
-    expiredAssignments.forEach(a => {
-        expiredHtml += `<tr class="expired">
-            <td>${a.client?.name || 'N/A'}</td>
-            <td>${a.serviceAccount?.name || 'N/A'} - ${a.profileName}</td>
-            <td>${new Date(a.expiryDate).toLocaleDateString('es-PY')}</td>
-        </tr>`;
-    });
-    document.getElementById('expired-table').innerHTML = expiredHtml + '</tbody></table>';
+    document.getElementById('assignments-table').innerHTML = assignmentsHtml;
 }
 
 function renderExpiringSoon({ expiringSoonAssignments }) {
     const list = document.getElementById('expiring-soon-list');
     if (!expiringSoonAssignments || expiringSoonAssignments.length === 0) {
-        list.innerHTML = '<p class="empty-list">No hay vencimientos en los próximos 5 días.</p>'; return;
+        list.innerHTML = '<p class="empty-list">No hay vencimientos próximos.</p>'; return;
     }
     list.innerHTML = expiringSoonAssignments.map(a => {
         const daysLeft = Math.ceil((new Date(a.expiryDate) - new Date()) / (1000 * 60 * 60 * 24));
@@ -214,12 +231,12 @@ function renderExpiringSoon({ expiringSoonAssignments }) {
 function renderExpiredAndUnrenewed({ expiredAssignments }) {
     const list = document.getElementById('expired-unrenewed-list');
     if (!expiredAssignments || expiredAssignments.length === 0) {
-        list.innerHTML = '<p class="empty-list">No hay asignaciones expiradas pendientes de acción.</p>'; return;
+        list.innerHTML = '<p class="empty-list">No hay expiradas pendientes.</p>'; return;
     }
     list.innerHTML = expiredAssignments.map(a => `
         <div class="list-item">
-            <div class="item-info"><strong>${a.client.name}</strong><span>Expiró el ${new Date(a.expiryDate).toLocaleDateString('es-PY')} (Cuenta: ${a.serviceAccount.name})</span></div>
-            <button class="button-danger change-pin" data-account-id="${a.serviceAccount._id}" data-profile-name="${a.profileName}" data-assignment-id="${a._id}">Cambiar PIN</button>
+            <div class="item-info"><strong>${a.client.name}</strong><span>Expiró el ${new Date(a.expiryDate).toLocaleDateString('es-PY')}</span></div>
+            <button class="button-danger change-pin" data-account-id="${a.serviceAccount._id}" data-profile-name="${a.profileName}" data-assignment-id="${a._id}">Liberar</button>
         </div>`
     ).join('');
 }
@@ -270,7 +287,7 @@ async function handleFormSubmit(e) {
         endpoint = '/api/admin/clients';
         body = { name: form.elements['name'].value, whatsapp: form.elements['whatsapp'].value };
         successMessage = 'Cliente agregado';
-    } else if (form.id === 'assignment-form') { // <-- MODIFICADO para crear clientes
+    } else if (form.id === 'assignment-form') {
         endpoint = '/api/admin/assignments';
         body = { 
             clientName: form.elements['client-name'].value,
@@ -310,11 +327,10 @@ async function handleActionClick(e) {
     if (button.matches('.toggle-status')) { performAction('PATCH', `/api/admin/accounts/${id}/status`, 'Estado cambiado.'); }
     if (button.matches('.delete-assignment')) { openModal('Confirmar', '<p>¿Seguro que quieres eliminar esta asignación?</p>', `<button class="button-danger" data-action="confirm-delete" data-endpoint="/api/admin/assignments/${id}">Eliminar</button>`); }
     if (button.matches('.renew-assignment')) { openModal('Confirmar', '<p>¿Renovar esta asignación por 30 días y marcarla como pagada?</p>', `<button class="button-success" data-action="confirm-renew" data-endpoint="/api/admin/assignments/${id}/renew">Renovar</button>`); }
-    if (button.matches('.toggle-payment')) { performAction('PATCH', `/api/admin/assignments/${id}/payment`, 'Estado de pago cambiado.'); } // <-- NUEVO
+    if (button.matches('.toggle-payment')) { performAction('PATCH', `/api/admin/assignments/${id}/payment`, 'Estado de pago cambiado.'); }
     if (button.matches('.change-pin')) { openChangePinModal(button.dataset.accountId, button.dataset.profileName, button.dataset.assignmentId); }
     if (button.matches('[data-action="save-new-pin"]')) { saveNewPin(button.dataset.accountId, button.dataset.profileName, button.dataset.assignmentId); }
 
-    // Handlers genéricos para confirmaciones
     if (button.matches('[data-action="confirm-delete"]')) { performAction('DELETE', button.dataset.endpoint, 'Elemento eliminado.'); }
     if (button.matches('[data-action="confirm-renew"]')) { performAction('PATCH', button.dataset.endpoint, 'Asignación renovada.'); }
 }
@@ -332,7 +348,7 @@ async function performAction(method, endpoint, successMessage, { body = null } =
     } catch (error) { openModal('Error', `<p>${error.message}</p>`); }
 }
 
-// --- LÓGICA DE MODALES (CON MEJORAS) ---
+// --- LÓGICA DE MODALES ---
 function openModal(title, body, footer = '<button class="button-secondary" data-action="close-modal">Cerrar</button>') {
     document.getElementById('modal-title').innerHTML = title;
     document.getElementById('modal-body').innerHTML = body;
@@ -357,11 +373,10 @@ async function saveClientEdit(id) {
     await performAction('PUT', `/api/admin/clients/${id}`, 'Cliente actualizado.', { body });
 }
 
-async function openEditAccountModal(id) { // <-- MODIFICADO para cargar pass desencriptada
+async function openEditAccountModal(id) {
     const account = adminData.serviceAccounts.find(a => a._id === id);
     if (!account) return;
     
-    // Pide la contraseña desencriptada al servidor
     const passRes = await fetch(`/api/admin/accounts/${id}/password`);
     const { password } = await passRes.json();
 
@@ -451,36 +466,36 @@ function addProfileInput() {
 }
 
 function filterTable(searchTerm, tableId) {
-    document.querySelectorAll(`#${tableId} tbody tr`).forEach(row => {
-        const isVisible = row.textContent.toLowerCase().includes(searchTerm.toLowerCase());
-        row.style.display = isVisible ? '' : 'none';
+    document.querySelectorAll(`#${tableId} .card`).forEach(card => {
+        const isVisible = card.textContent.toLowerCase().includes(searchTerm.toLowerCase());
+        card.style.display = isVisible ? '' : 'none';
     });
 }
 
-function filterAssignmentTableByPayment(status) { // <-- NUEVO
-    document.querySelectorAll('#assignments-table tbody tr').forEach(row => {
+function filterAssignmentTableByPayment(status) {
+    document.querySelectorAll('#assignments-table .card').forEach(card => {
         if (status === 'todos') {
-            row.style.display = '';
+            card.style.display = '';
         } else {
-            row.style.display = row.dataset.payment === status ? '' : 'none';
+            card.style.display = card.dataset.payment === status ? '' : 'none';
         }
     });
 }
 
-function filterAccountTableByAvailability(status) { // <-- NUEVO
-    document.querySelectorAll('#accounts-table tbody tr').forEach(row => {
+function filterAccountTableByAvailability(status) {
+    document.querySelectorAll('#accounts-table .card').forEach(card => {
         if (status === 'todos') {
-            row.style.display = '';
+            card.style.display = '';
         } else {
-            row.style.display = row.dataset.available === status ? '' : 'none';
+            card.style.display = card.dataset.available === status ? '' : 'none';
         }
     });
 }
 
 
-// --- LÓGICA DEL PANEL DEL CLIENTE (CON MEJORAS) ---
+// --- LÓGICA DEL PANEL DEL CLIENTE ---
 
-function setupClientLoginForm() { // Renombrado de setupLoginForm
+function setupClientLoginForm() {
     const form = document.getElementById('login-form');
     if (form) {
         form.addEventListener('submit', (e) => {
@@ -501,7 +516,6 @@ async function loadDashboard() {
     }
 
     try {
-        // Cargar datos de acceso
         const res = await fetch(`/api/client/access/${whatsapp}`);
         if (!res.ok) throw new Error((await res.json()).message);
         const data = await res.json();
@@ -537,10 +551,8 @@ async function loadDashboard() {
             </div>
         `;
         
-        // Cargar historial del cliente
         loadClientHistory(whatsapp);
 
-        // Funcionalidad de botones de copiar
         document.querySelectorAll('.copy-btn').forEach(button => {
             button.addEventListener('click', (e) => {
                 const textToCopy = document.getElementById(e.target.dataset.copy).textContent;
