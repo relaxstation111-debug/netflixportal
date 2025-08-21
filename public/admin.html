@@ -6,7 +6,7 @@
     <title>Panel de Administrador</title>
     <link rel="stylesheet" href="style.css">
 </head>
-<body>
+<body class="admin-body">
     <div class="admin-container">
         <div class="admin-header">
             <h1 id="page-title" class="title">Dashboard</h1>
@@ -30,8 +30,13 @@
                 <div class="admin-section">
                     <h3>Nueva Asignación</h3>
                     <form id="assignment-form" class="admin-form">
-                        <input type="text" id="client-name" name="client-name" placeholder="Nombre del Cliente" required>
-                        <input type="text" id="client-whatsapp" name="client-whatsapp" placeholder="N° de WhatsApp del Cliente" required>
+                        <div class="form-group search-select-container">
+                             <input type="text" id="client-search-input" placeholder="Buscar o añadir cliente..." autocomplete="off">
+                             <div id="client-search-results" class="search-results"></div>
+                             <input type="hidden" id="selected-client-id">
+                             <input type="hidden" id="client-name" name="client-name">
+                             <input type="hidden" id="client-whatsapp" name="client-whatsapp">
+                        </div>
                         <select id="account-select" required><option value="">-- Selecciona Cuenta --</option></select>
                         <select id="profile-select" required><option value="">-- Selecciona Perfil --</option></select>
                         <input type="number" id="pin-input" placeholder="PIN (se autocompleta)" readonly>

@@ -3,14 +3,16 @@ const express = require('express');
 const path = require('path');
 const mongoose = require('mongoose');
 const session = require('express-session');
-const CryptoJS = require('crypto-js'); // <-- NUEVO para encriptar contraseñas
+const CryptoJS = require('crypto-js');
 
-// --- FUNCIONES DE ENCRIPTACIÓN (NUEVO) ---
+// --- FUNCIONES DE ENCRIPTACIÓN ---
 const encrypt = (text) => {
+    if (!text) return '';
     return CryptoJS.AES.encrypt(text, process.env.CRYPTO_SECRET_KEY).toString();
 };
 
 const decrypt = (ciphertext) => {
+    if (!ciphertext) return '';
     const bytes = CryptoJS.AES.decrypt(ciphertext, process.env.CRYPTO_SECRET_KEY);
     return bytes.toString(CryptoJS.enc.Utf8);
 };
@@ -27,7 +29,7 @@ const Client = mongoose.model('Client', ClientSchema);
 const ServiceAccountSchema = new mongoose.Schema({
     name: { type: String, required: true, unique: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true }, // <-- Se guardará encriptada
+    password: { type: String, required: true },
     profiles: [{ _id: false, name: String, pin: String }],
     status: { type: String, enum: ['Activa', 'Inactiva'], default: 'Activa' }
 });
@@ -40,23 +42,23 @@ const AssignmentSchema = new mongoose.Schema({
     pin: { type: String, required: true },
     assignedDate: { type: Date, default: Date.now },
     expiryDate: { type: Date, required: true },
-    paymentStatus: { type: String, enum: ['Pagado', 'Pendiente'], default: 'Pendiente' } // <-- NUEVO para pagos
+    paymentStatus: { type: String, enum: ['Pagado', 'Pendiente'], default: 'Pendiente' }
 });
 const Assignment = mongoose.model('Assignment', AssignmentSchema);
 
 
-// --- CONFIGURACIÓN DE EXPRESS ---
+// --- CONFIGURACIÓN DE EXPRESS Y SESIONES ---
 const app = express();
 const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-    secret: 'un_secreto_muy_largo_y_dificil_de_adivinar', // Cambia esto por una frase aleatoria
+    secret: 'un_secreto_muy_largo_y_dificil_de_adivinar',
     resave: false,
     saveUninitialized: true,
     cookie: { 
         secure: false, // Poner en true si usas HTTPS
-        maxAge: 1000 * 60 * 60 * 24 * 7 // <-- AÑADE ESTO: 7 días de sesión
+        maxAge: 1000 * 60 * 60 * 24 * 7 // 7 días de sesión
     }
 }));
 
@@ -102,7 +104,6 @@ app.get('/api/admin/logout', (req, res) => {
 
 // --- RUTAS DE LA API (ADMIN) ---
 
-// [ADMIN] Obtener todos los datos para el dashboard
 app.get('/api/admin/data', checkAuth, async (req, res) => {
     try {
         const now = new Date();
@@ -120,11 +121,11 @@ app.get('/api/admin/data', checkAuth, async (req, res) => {
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// [ADMIN] Rutas para CUENTAS DE SERVICIO (con encriptación)
+// CUENTAS DE SERVICIO
 app.post('/api/admin/accounts', checkAuth, async (req, res) => {
     try {
         const { name, email, password, profiles } = req.body;
-        const newAccount = new ServiceAccount({ name, email, password: encrypt(password), profiles }); // <-- Encripta la contraseña
+        const newAccount = new ServiceAccount({ name, email, password: encrypt(password), profiles });
         await newAccount.save();
         res.status(201).json(newAccount);
     } catch (error) { res.status(400).json({ message: 'Error: Datos duplicados o inválidos.' }); }
@@ -138,13 +139,10 @@ app.put('/api/admin/accounts/:id', checkAuth, async (req, res) => {
             return { name: profileName.trim(), pin: pin ? pin.trim() : '0000' };
         });
         
-        // Comprueba si la contraseña enviada ya está encriptada o no
-        let finalPassword = password;
         const oldAccount = await ServiceAccount.findById(req.params.id);
-        if (oldAccount && decrypt(oldAccount.password) !== password) {
-             finalPassword = encrypt(password); // Si la contraseña cambió, encriptarla
-        } else {
-            finalPassword = oldAccount.password; // Si no cambió, mantener la encriptada
+        let finalPassword = oldAccount.password;
+        if (password !== decrypt(oldAccount.password)) {
+             finalPassword = encrypt(password);
         }
 
         const updatedAccount = await ServiceAccount.findByIdAndUpdate(req.params.id, { name, email, password: finalPassword, profiles: profilesArray }, { new: true });
@@ -152,15 +150,13 @@ app.put('/api/admin/accounts/:id', checkAuth, async (req, res) => {
     } catch (error) { res.status(400).json({ message: error.message }); }
 });
 
-// [ADMIN] Para desencriptar una contraseña y mostrarla en el modal de edición
-app.get('/api/admin/accounts/:id/password', checkAuth, async (req, res) => { // <-- NUEVA RUTA
+app.get('/api/admin/accounts/:id/password', checkAuth, async (req, res) => {
     try {
         const account = await ServiceAccount.findById(req.params.id);
         if (!account) return res.status(404).json({ message: 'Cuenta no encontrada' });
         res.json({ password: decrypt(account.password) });
     } catch (error) { res.status(500).json({ message: 'Error al desencriptar' }); }
 });
-
 
 app.patch('/api/admin/accounts/:accountId/profiles', checkAuth, async (req, res) => {
     try {
@@ -191,13 +187,32 @@ app.patch('/api/admin/accounts/:id/status', checkAuth, async (req, res) => {
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// [ADMIN] Rutas para CLIENTES (sin cambios mayores)
+// CLIENTES
 app.post('/api/admin/clients', checkAuth, async (req, res) => {
     try {
         const newClient = new Client({ name: req.body.name, whatsapp: normalizeWhatsApp(req.body.whatsapp) });
         await newClient.save();
         res.status(201).json(newClient);
     } catch (error) { res.status(400).json({ message: 'Error: Cliente ya existe o datos inválidos.' }); }
+});
+
+// <-- NUEVA RUTA DE BÚSQUEDA ---
+app.get('/api/admin/clients/search', checkAuth, async (req, res) => {
+    try {
+        const searchTerm = req.query.term;
+        if (!searchTerm) {
+            return res.json([]);
+        }
+        const clients = await Client.find({
+            $or: [
+                { name: { $regex: searchTerm, $options: 'i' } },
+                { whatsapp: { $regex: searchTerm, $options: 'i' } }
+            ]
+        }).limit(5); // Limita a 5 resultados para no sobrecargar
+        res.json(clients);
+    } catch (error) {
+        res.status(500).json({ message: 'Error al buscar clientes.' });
+    }
 });
 
 app.delete('/api/admin/clients/:id', checkAuth, async (req, res) => {
@@ -224,19 +239,17 @@ app.get('/api/admin/clients/:id/history', checkAuth, async (req, res) => {
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// [ADMIN] Rutas para ASIGNACIONES (con mejoras)
-app.post('/api/admin/assignments', checkAuth, async (req, res) => { // <-- RUTA MEJORADA
+// ASIGNACIONES
+app.post('/api/admin/assignments', checkAuth, async (req, res) => {
     try {
         const { clientName, clientWhatsapp, accountId, profileName, pin } = req.body;
         let clientId;
 
-        // Buscar si el cliente ya existe por WhatsApp
         const normalizedNumber = normalizeWhatsApp(clientWhatsapp);
         let client = await Client.findOne({ whatsapp: normalizedNumber });
 
-        // Si no existe, crearlo al vuelo
         if (!client) {
-            if (!clientName) { // Validar que tengamos un nombre para el nuevo cliente
+            if (!clientName) {
                 return res.status(400).json({ message: 'El nombre es obligatorio para un cliente nuevo.' });
             }
             client = new Client({ name: clientName, whatsapp: normalizedNumber });
@@ -244,7 +257,6 @@ app.post('/api/admin/assignments', checkAuth, async (req, res) => { // <-- RUTA 
         }
         clientId = client._id;
 
-        // Comprobar asignación activa
         const existingAssignment = await Assignment.findOne({ client: clientId, expiryDate: { $gte: new Date() } });
         if (existingAssignment) {
             return res.status(400).json({ message: 'Este cliente ya tiene una asignación activa.' });
@@ -253,18 +265,13 @@ app.post('/api/admin/assignments', checkAuth, async (req, res) => { // <-- RUTA 
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30);
         const newAssignment = new Assignment({
-            client: clientId,
-            serviceAccount: accountId,
-            profileName,
-            pin,
-            expiryDate,
-            paymentStatus: 'Pagado' // <-- Por defecto se marca como pagado
+            client: clientId, serviceAccount: accountId, profileName, pin, expiryDate,
+            paymentStatus: 'Pagado'
         });
         await newAssignment.save();
         res.status(201).json(newAssignment);
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
-
 
 app.delete('/api/admin/assignments/:id', checkAuth, async (req, res) => {
     try {
@@ -279,14 +286,13 @@ app.patch('/api/admin/assignments/:id/renew', checkAuth, async (req, res) => {
         const newExpiryDate = new Date();
         newExpiryDate.setDate(newExpiryDate.getDate() + 30);
         assignment.expiryDate = newExpiryDate;
-        assignment.paymentStatus = 'Pagado'; // <-- Marcar como pagado al renovar
+        assignment.paymentStatus = 'Pagado';
         await assignment.save();
         res.status(200).json(assignment);
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// [ADMIN] Nueva ruta para cambiar estado de pago
-app.patch('/api/admin/assignments/:id/payment', checkAuth, async (req, res) => { // <-- NUEVA RUTA
+app.patch('/api/admin/assignments/:id/payment', checkAuth, async (req, res) => {
     try {
         const assignment = await Assignment.findById(req.params.id);
         assignment.paymentStatus = assignment.paymentStatus === 'Pagado' ? 'Pendiente' : 'Pagado';
@@ -310,7 +316,7 @@ app.get('/api/client/access/:whatsapp', async (req, res) => {
         res.json({
             clientName: client.name,
             usuario: assignment.serviceAccount.email,
-            password: decrypt(assignment.serviceAccount.password), // <-- Desencripta la contraseña
+            password: decrypt(assignment.serviceAccount.password),
             perfil: assignment.profileName,
             pin: assignment.pin,
             vence: new Date(assignment.expiryDate).toLocaleDateString('es-PY'),
@@ -319,8 +325,7 @@ app.get('/api/client/access/:whatsapp', async (req, res) => {
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// Nueva ruta para el historial del cliente
-app.get('/api/client/history/:whatsapp', async (req, res) => { // <-- NUEVA RUTA
+app.get('/api/client/history/:whatsapp', async (req, res) => {
     try {
         const normalizedNumber = normalizeWhatsApp(req.params.whatsapp);
         const client = await Client.findOne({ whatsapp: normalizedNumber });

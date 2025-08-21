@@ -87,14 +87,11 @@ body {
 
 /* --- FORMULARIOS Y ENTRADAS DE TEXTO --- */
 .input-group { display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; }
-.input-group input, 
 .admin-form input, 
 .admin-form select, 
-.admin-form textarea, 
-.modal-form input, 
-.modal-form select, 
-.modal-form textarea, 
-.search-input {
+.modal-form input,
+.search-input,
+#client-search-input {
     width: 100%;
     padding: 16px;
     background-color: var(--gray-color);
@@ -105,10 +102,11 @@ body {
     transition: all 0.2s ease;
     font-family: var(--font-family);
 }
-.input-group input:focus,
 .admin-form input:focus, 
 .admin-form select:focus, 
-.search-input:focus {
+.modal-form input:focus,
+.search-input:focus,
+#client-search-input:focus {
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.3);
     outline: none;
@@ -154,7 +152,7 @@ body.admin-body {
 .content-area { padding: 15px; }
 .tab-content { display: none; }
 .tab-content.active { display: block; animation: fadeIn 0.3s; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
 .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background-color: #181818; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--gray-color); z-index: 1000; }
 .nav-button { background: none; border: none; color: #8e8e8e; display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--font-family); cursor: pointer; transition: color 0.2s ease; flex-grow: 1; padding: 10px 0; }
 .nav-button.active { color: var(--light-color); }
@@ -181,17 +179,51 @@ body.admin-body {
 .list-container { max-height: none; }
 .list-item { padding: 12px; }
 .list-item .button-whatsapp { font-size: 0.8rem; padding: 8px 12px; }
-.modal-backdrop.visible { align-items: flex-end; }
-.modal-content { width: 100%; border-radius: 16px 16px 0 0; transform: translateY(100%); transition: transform 0.3s ease; max-width: none; }
-.modal-backdrop.visible .modal-content { transform: translateY(0); }
-.modal-footer { justify-content: space-between; }
-.modal-footer button { flex-grow: 1; }
 .payment-status { padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.8rem; font-weight: bold; }
 .payment-status.paid { background-color: var(--success-color); }
 .payment-status.pending { background-color: var(--pending-color); }
 .status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
 .status-dot.activa { background-color: var(--success-color); }
 .status-dot.inactiva { background-color: var(--primary-color); }
+
+/* --- NUEVOS ESTILOS PARA BUSCADOR Y MODALES --- */
+.search-select-container { position: relative; grid-column: 1 / -1; }
+.search-results {
+    position: absolute; top: 100%; left: 0; right: 0;
+    background: var(--dark-color); border: 1px solid #555;
+    border-radius: 0 0 5px 5px; z-index: 100;
+    max-height: 200px; overflow-y: auto; display: none;
+}
+.search-result-item {
+    padding: 12px 15px; cursor: pointer;
+    border-bottom: 1px solid var(--gray-color);
+}
+.search-result-item:last-child { border-bottom: none; }
+.search-result-item:hover { background-color: var(--primary-color); }
+
+.modal-backdrop {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.7); backdrop-filter: blur(5px);
+    display: flex; justify-content: center; align-items: center; /* Centrado */
+    opacity: 0; visibility: hidden; transition: opacity 0.3s ease; z-index: 1000;
+}
+.modal-backdrop.visible { opacity: 1; visibility: visible; }
+.modal-content {
+    background: var(--dark-color); border: 1px solid var(--gray-color);
+    padding: 30px; border-radius: var(--border-radius);
+    width: 90%; max-width: 500px;
+    transform: scale(0.95); /* Animación de escala */
+    transition: transform 0.3s ease;
+}
+.modal-backdrop.visible .modal-content { transform: scale(1); }
+#modal-title { margin-bottom: 20px; }
+#modal-body { margin-bottom: 30px; }
+#modal-footer { display: flex; justify-content: flex-end; gap: 15px; }
+.modal-form label { margin-bottom: 5px; display: block; }
+.modal-footer button { flex-grow: 1; }
+@media (min-width: 500px) {
+    .modal-footer button { flex-grow: 0; }
+}
 
 
 /* --- PANEL DEL CLIENTE --- */
@@ -217,7 +249,8 @@ body.admin-body {
     .nav-text { display: none; }
     .admin-container { padding-left: 100px; }
     .admin-form { grid-template-columns: repeat(2, 1fr); }
-    .admin-form button, .admin-form .dynamic-profiles-container { grid-column: 1 / -1; }
+    .admin-form .search-select-container { grid-column: 1 / -1; }
+    .admin-form button { grid-column: 1 / -1; }
     .table-container { display: block; max-height: 500px; overflow-y: auto; }
     .card { display: grid; grid-template-columns: 2fr 3fr 1fr 2fr; padding: 12px 15px; border-radius: 0; border-left: none; border-bottom: 1px solid #444; align-items: center; }
     .card-header, .card-body, .card-actions { display: contents; }
