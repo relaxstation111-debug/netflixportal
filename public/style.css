@@ -1,228 +1,226 @@
+/* --- CONFIGURACIÓN GLOBAL Y VARIABLES --- */
 :root {
-    --primary-color: #E50914; --dark-color: #141414; --light-color: #ffffff;
-    --gray-color: #333333; --light-gray: #f4f4f4; --background-color: #000000;
+    --primary-color: #E50914; 
+    --dark-color: #141414; 
+    --light-color: #ffffff;
+    --gray-color: #333333; 
+    --light-gray: #f4f4f4; 
+    --background-color: #000000;
     --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-    --border-radius: 8px; --success-color: #28a745; --whatsapp-color: #25D366;
-    --secondary-color: #6c757d; --pending-color: #f0ad4e;
-}
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html {
-    -webkit-tap-highlight-color: transparent; /* Evita el flash azul al tocar en móviles */
-}
-body {
-    font-family: var(--font-family); background-color: var(--dark-color); color: var(--light-color);
-    padding: 20px 20px 100px 20px; /* Añadido padding inferior para que el menú no tape el contenido */
-    background-image: none; /* Quitamos la imagen de fondo para una sensación más de app */
+    --border-radius: 8px; 
+    --success-color: #28a745; 
+    --whatsapp-color: #25D366;
+    --secondary-color: #6c757d; 
+    --pending-color: #f0ad4e;
 }
 
-/* --- ESTRUCTURA PRINCIPAL DE LA APP ADMIN --- */
-.admin-container {
-    width: 100%; max-width: 1200px; margin: 0 auto;
-    padding: 0; background-color: transparent; border: none;
+* { 
+    box-sizing: border-box; 
+    margin: 0; 
+    padding: 0; 
 }
-.admin-header {
-    display: flex; justify-content: space-between; align-items: center;
-    padding: 0 5px 15px 5px; border-bottom: 1px solid var(--gray-color);
-    margin-bottom: 20px;
+
+html {
+    -webkit-tap-highlight-color: transparent;
 }
-.admin-header .title { font-size: 1.8rem; margin: 0; text-align: left; }
-.admin-header .button-danger {
-    width: auto; font-size: 0.9rem; padding: 8px 16px; background-color: var(--gray-color);
+
+body {
+    font-family: var(--font-family); 
+    background-color: var(--dark-color); 
+    color: var(--light-color);
+    padding: 20px 20px 100px 20px;
+    background-image: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('https://assets.nflxext.com/ffe/siteui/vlv3/51e5354A-056A-444E-A042-4EE4A0685A5D/50322055-5820-42f5-96df-acd996025114/PY-es-20240618-POP_SIGNUP_TWO_WEEKS-perspective_WEB_db82451d_IN_es_uno.jpg');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
 }
-.content-area { padding: 5px; }
+
+
+/* --- CONTENEDORES PRINCIPALES --- */
+.container, .admin-container, .landing-container {
+    width: 100%;
+    margin: 0 auto;
+}
+
+.container, .landing-container {
+    max-width: 960px;
+}
+
+.container {
+    background-color: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 40px;
+    border-radius: var(--border-radius);
+    text-align: center;
+}
+
+.landing-container {
+    padding: 0;
+}
+
+
+/* --- BOTONES --- */
+.button, .button-danger, .button-success, .button-secondary, .button-whatsapp {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 5px;
+    color: var(--light-color);
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    text-align: center;
+    display: inline-block;
+}
+.button { background-color: var(--primary-color); width: 100%; }
+.button:hover { background-color: #f6121d; transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.3); }
+.button-danger { background-color: #7d2127; }
+.button-danger:hover { background-color: var(--primary-color); }
+.button-success { background-color: #1f6a32; }
+.button-success:hover { background-color: var(--success-color); }
+.button-secondary { background-color: #444; }
+.button-secondary:hover { background-color: var(--secondary-color); }
+.button-whatsapp { background-color: var(--whatsapp-color); color: #fff; }
+.button-whatsapp:hover { background-color: #2fec77; }
+
+
+/* --- FORMULARIOS Y ENTRADAS DE TEXTO --- */
+.input-group { display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px; }
+.input-group input, 
+.admin-form input, 
+.admin-form select, 
+.admin-form textarea, 
+.modal-form input, 
+.modal-form select, 
+.modal-form textarea, 
+.search-input {
+    width: 100%;
+    padding: 16px;
+    background-color: var(--gray-color);
+    border: 1px solid #555;
+    border-radius: 5px;
+    color: var(--light-color);
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    font-family: var(--font-family);
+}
+.input-group input:focus,
+.admin-form input:focus, 
+.admin-form select:focus, 
+.search-input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(229, 9, 20, 0.3);
+    outline: none;
+}
+
+
+/* --- PÁGINA DE INICIO (INDEX.HTML) --- */
+.landing-header { display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 60px; }
+.landing-header .logo { margin: 0; width: 120px; }
+.landing-header .button { width: auto; font-size: 0.9rem; }
+.hero-section, .how-it-works, .features-section, .final-cta { text-align: center; margin-bottom: 80px; }
+.hero-title { font-size: 2.5rem; margin-bottom: 20px; font-weight: 900; }
+.hero-subtitle { font-size: 1.1rem; color: #b3b3b3; max-width: 600px; margin: 0 auto 40px; line-height: 1.6; }
+.cta-buttons { display: flex; justify-content: center; gap: 20px; flex-wrap: wrap; }
+.section-title { font-size: 2rem; margin-bottom: 40px; }
+.steps-container { display: grid; grid-template-columns: 1fr; gap: 30px; }
+.step { background-color: rgba(30,30,30,0.8); padding: 30px; border-radius: var(--border-radius); border: 1px solid rgba(255, 255, 255, 0.1); }
+.step-icon { width: 50px; height: 50px; background-color: var(--primary-color); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px; font-size: 1.5rem; font-weight: bold; }
+.step h3 { font-size: 1.5rem; margin-bottom: 10px; }
+.step p { color: #b3b3b3; }
+.feature-grid { display: grid; grid-template-columns: 1fr; gap: 20px; text-align: left; }
+.feature { background-color: rgba(30,30,30,0.8); padding: 25px; border-radius: var(--border-radius); border-left: 4px solid var(--primary-color); }
+.feature h3 { font-size: 1.2rem; margin-bottom: 8px; }
+.feature p { color: #b3b3b3; }
+.landing-footer { text-align: center; font-size: 0.8rem; color: #777; margin-top: 40px; border-top: 1px solid var(--gray-color); padding-top: 20px; }
+@media (min-width: 768px) {
+    .hero-title { font-size: 3.5rem; }
+    .section-title { font-size: 2.5rem; }
+    .steps-container { grid-template-columns: repeat(3, 1fr); }
+    .feature-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+
+/* --- PANEL DE ADMIN (ESTILOS MOVILES PRIMERO) --- */
+body.admin-body {
+    background-image: none;
+    background-color: var(--dark-color);
+}
+.admin-container { padding: 0; }
+.admin-header { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid var(--gray-color); margin-bottom: 20px; }
+.admin-header .title { font-size: 1.5rem; margin: 0; text-align: left; }
+.admin-header .button-danger { width: auto; font-size: 0.8rem; padding: 8px 12px; background-color: var(--gray-color); }
+.content-area { padding: 15px; }
 .tab-content { display: none; }
 .tab-content.active { display: block; animation: fadeIn 0.3s; }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-
-/* --- MENÚ DE NAVEGACIÓN INFERIOR (NUEVO) --- */
-.bottom-nav {
-    position: fixed; bottom: 0; left: 0; right: 0;
-    height: 70px; background-color: #181818;
-    display: flex; justify-content: space-around; align-items: center;
-    border-top: 1px solid var(--gray-color);
-    z-index: 1000;
-}
-.nav-button {
-    background: none; border: none; color: #8e8e8e;
-    display: flex; flex-direction: column; align-items: center;
-    gap: 4px; font-family: var(--font-family);
-    cursor: pointer; transition: color 0.2s ease;
-    flex-grow: 1; padding: 10px 0;
-}
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background-color: #181818; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--gray-color); z-index: 1000; }
+.nav-button { background: none; border: none; color: #8e8e8e; display: flex; flex-direction: column; align-items: center; gap: 4px; font-family: var(--font-family); cursor: pointer; transition: color 0.2s ease; flex-grow: 1; padding: 10px 0; }
 .nav-button.active { color: var(--light-color); }
 .nav-icon { font-size: 1.8rem; }
 .nav-text { font-size: 0.7rem; font-weight: 500; }
-
-/* --- NUEVO DISEÑO DE TARJETAS PARA MÓVIL --- */
-.table-container {
-    display: flex; flex-direction: column; gap: 15px;
-}
-.card {
-    background-color: var(--gray-color);
-    border-radius: var(--border-radius);
-    padding: 15px;
-    border-left: 4px solid var(--secondary-color);
-}
-.card-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 15px;
-}
-.card-title {
-    font-size: 1.2rem; font-weight: bold;
-    display: flex; align-items: center; gap: 8px;
-}
+.table-container { display: flex; flex-direction: column; gap: 15px; }
+.card { background-color: var(--gray-color); border-radius: var(--border-radius); padding: 15px; border-left: 4px solid var(--secondary-color); }
+.card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; }
+.card-title { font-size: 1.2rem; font-weight: bold; display: flex; align-items: center; gap: 8px; }
 .card-pills { display: flex; gap: 5px; }
-.card-pills span {
-    background-color: rgba(0,0,0,0.3); padding: 4px 8px;
-    border-radius: 12px; font-size: 0.8rem;
-}
+.card-pills span { background-color: rgba(0,0,0,0.3); padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; }
 .card-body p { color: #b3b3b3; margin-bottom: 5px; font-size: 0.9rem; }
 .card-body p strong { color: var(--light-color); }
-.card-actions {
-    margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap;
-    border-top: 1px solid #444; padding-top: 15px;
-}
-.card-actions button {
-    flex-grow: 1; font-size: 0.9rem; padding: 10px;
-}
-
-/* --- BOTONES Y FORMULARIOS ADAPTADOS --- */
-.button, .button-danger, .button-success, .button-secondary, .button-whatsapp {
-    padding: 12px 18px; border: none; border-radius: 5px; color: var(--light-color);
-    font-size: 1rem; font-weight: bold; cursor: pointer; transition: all 0.2s ease;
-    text-decoration: none; text-align: center; display: inline-block;
-}
-.button { background-color: var(--primary-color); width: 100%; }
-.button:hover { background-color: #f6121d; }
-.button-danger { background-color: #7d2127; }
-.button-success { background-color: #1f6a32; }
-.button-secondary { background-color: #444; }
-.admin-form {
-    display: grid; grid-template-columns: 1fr;
-    gap: 15px; margin-bottom: 25px;
-}
-.admin-form input, .admin-form select {
-    width: 100%; padding: 16px; background-color: #222;
-    border: 1px solid #555; border-radius: 5px; color: var(--light-color);
-    font-size: 1rem;
-}
+.card-actions { margin-top: 15px; display: flex; gap: 10px; flex-wrap: wrap; border-top: 1px solid #444; padding-top: 15px; }
+.card-actions button { flex-grow: 1; font-size: 0.9rem; padding: 10px; }
+.admin-form { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 25px; }
 .filters-container { display: flex; gap: 10px; margin-bottom: 15px; }
 .filters-container .search-container { flex-grow: 1; }
-.filters-container select {
-    padding: 0 16px; background-color: #222; border: 1px solid #555;
-    border-radius: 5px; color: var(--light-color); font-size: 0.9rem;
-}
-
-/* --- Dashboard y Listas --- */
-.stats-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 30px; }
+.filters-container select { padding: 0 16px; font-size: 0.9rem; }
+.stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 30px; }
 .stat-card { padding: 15px; }
 .stat-card h3 { font-size: 2rem; }
 .stat-card p { font-size: 0.8rem; }
 .list-container { max-height: none; }
 .list-item { padding: 12px; }
-.list-item .button-whatsapp {
-    font-size: 0.8rem; padding: 8px 12px;
-}
-
-/* --- MODAL (Ajustes para móvil) --- */
+.list-item .button-whatsapp { font-size: 0.8rem; padding: 8px 12px; }
 .modal-backdrop.visible { align-items: flex-end; }
-.modal-content {
-    width: 100%;
-    border-radius: 16px 16px 0 0;
-    transform: translateY(100%);
-    transition: transform 0.3s ease;
-    max-width: none;
-}
+.modal-content { width: 100%; border-radius: 16px 16px 0 0; transform: translateY(100%); transition: transform 0.3s ease; max-width: none; }
 .modal-backdrop.visible .modal-content { transform: translateY(0); }
 .modal-footer { justify-content: space-between; }
 .modal-footer button { flex-grow: 1; }
+.payment-status { padding: 4px 8px; border-radius: 4px; color: white; font-size: 0.8rem; font-weight: bold; }
+.payment-status.paid { background-color: var(--success-color); }
+.payment-status.pending { background-color: var(--pending-color); }
+.status-dot { height: 10px; width: 10px; border-radius: 50%; display: inline-block; }
+.status-dot.activa { background-color: var(--success-color); }
+.status-dot.inactiva { background-color: var(--primary-color); }
 
 
-/* --- ESTILOS GENERALES Y OTROS (No relacionados con admin) --- */
-/* Mantienen el estilo de las otras páginas */
-
-.container, .landing-container {
-    background-color: rgba(0, 0, 0, 0.88); backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-.container { max-width: 500px; text-align: center; }
-.landing-container { max-width: 960px; padding: 40px; background-color: transparent; border: none; }
-
-/* Estilos de Landing Page, Login, Dashboard de cliente, etc. */
-/* (Pegar aquí el resto de tu CSS anterior si es necesario, 
-   o dejarlo así si solo te enfocas en la app de admin) */
-.logo { width: 150px; display: block; margin: 0 auto 20px; }
-.title { text-align: center; margin-bottom: 10px; font-size: 2rem; }
-.subtitle { color: #b3b3b3; text-align: center; margin-bottom: 30px; }
+/* --- PANEL DEL CLIENTE --- */
+#welcome-header { text-align: center; margin-bottom: 30px; }
 .info-card { background-color: var(--gray-color); padding: 20px; border-radius: var(--border-radius); text-align: left; margin-bottom: 15px; border-left: 4px solid var(--primary-color); }
+.info-card .label { font-size: 0.8rem; color: #b3b3b3; margin-bottom: 5px; text-transform: uppercase; display: block; }
+.info-card .value { font-size: 1.2rem; font-weight: bold; word-wrap: break-word; }
+.info-card .pin { color: var(--primary-color); letter-spacing: 3px; font-size: 1.5rem; }
+.value-wrapper { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.copy-btn { background: none; border: none; color: #b3b3b3; cursor: pointer; font-size: 1.2rem; padding: 5px; }
 .status-card { text-align: center; padding: 20px; border-radius: var(--border-radius); margin-top: 15px; }
+.status-card.active { background-color: rgba(40, 167, 69, 0.2); border: 1px solid var(--success-color); }
+.status-card.expiring { background-color: rgba(229, 9, 20, 0.2); border: 1px solid var(--primary-color); }
 .support-card { text-align: center; margin-top: 40px; padding: 25px; background-color: rgba(255, 255, 255, 0.05); border-radius: var(--border-radius); }
 
 
 /* --- MEDIA QUERIES PARA ESCRITORIO --- */
-/* Cuando la pantalla sea más grande, volvemos a un diseño más tradicional */
 @media (min-width: 768px) {
-    body {
-        /* Re-centramos el contenido en escritorio */
-        display: flex; justify-content: center; align-items: flex-start;
-        padding: 20px;
-        background-image: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('https://assets.nflxext.com/ffe/siteui/vlv3/51e5354A-056A-444E-A042-4EE4A0685A5D/50322055-5820-42f5-96df-acd996025114/PY-es-20240618-POP_SIGNUP_TWO_WEEKS-perspective_WEB_db82451d_IN_es_uno.jpg');
-    }
-    .bottom-nav {
-        /* Convertimos el menú inferior en un menú lateral para escritorio */
-        left: 0; top: 0; bottom: 0; right: auto;
-        height: 100vh; width: 80px;
-        flex-direction: column; justify-content: flex-start;
-        padding-top: 20px; gap: 20px;
-        border-top: none; border-right: 1px solid var(--gray-color);
-    }
-    .nav-button.active {
-        background-color: var(--primary-color);
-        border-radius: var(--border-radius);
-    }
+    body { padding: 20px; }
+    .bottom-nav { left: 0; top: 0; bottom: 0; right: auto; height: 100vh; width: 80px; flex-direction: column; justify-content: flex-start; padding-top: 20px; gap: 20px; border-top: none; border-right: 1px solid var(--gray-color); }
+    .nav-button.active { background-color: var(--primary-color); border-radius: var(--border-radius); }
     .nav-icon { font-size: 1.5rem; }
-    .nav-text { display: none; } /* Ocultamos el texto en el menú lateral */
-    
-    .admin-container {
-        padding-left: 100px; /* Dejamos espacio para el menú lateral */
-    }
-
+    .nav-text { display: none; }
+    .admin-container { padding-left: 100px; }
     .admin-form { grid-template-columns: repeat(2, 1fr); }
     .admin-form button, .admin-form .dynamic-profiles-container { grid-column: 1 / -1; }
-    
-    .table-container {
-        /* En escritorio, volvemos a la vista de tabla real */
-        max-height: 500px; overflow-y: auto;
-    }
-    /* El JS sigue generando "cards", así que las estilizamos para que PAREZCAN una tabla */
-    .table-container {
-        display: block;
-    }
-    .card {
-        display: grid;
-        grid-template-columns: 2fr 3fr 1fr 2fr; /* 4 columnas */
-        padding: 12px 15px;
-        border-radius: 0;
-        border-left: none;
-        border-bottom: 1px solid #444;
-        align-items: center;
-    }
-    .card-header, .card-body, .card-actions {
-        display: contents; /* Hacemos que los hijos se comporten como celdas de la tabla */
-    }
-    .card-pills, .card-body p, .card-actions button:not(:first-child) {
-        /* Ocultamos/ajustamos elementos que no caben en la vista de tabla */
-    }
+    .table-container { display: block; max-height: 500px; overflow-y: auto; }
+    .card { display: grid; grid-template-columns: 2fr 3fr 1fr 2fr; padding: 12px 15px; border-radius: 0; border-left: none; border-bottom: 1px solid #444; align-items: center; }
+    .card-header, .card-body, .card-actions { display: contents; }
     .card-title { font-size: 1rem; }
-    
-    /* Simulación de cabecera de tabla (opcional, pero mejora la UX) */
-    .table-container::before {
-        content: 'Nombre / Cliente      Cuenta / Email      Pago / Disponibles      Acciones';
-        display: block;
-        padding: 12px 15px;
-        font-weight: bold;
-        background-color: #222;
-        font-family: monospace;
-        color: #b3b3b3;
-    }
+    .table-container::before { content: 'Nombre/Cliente      Cuenta/Email      Estado      Acciones'; display: block; padding: 12px 15px; font-weight: bold; background-color: #222; font-family: monospace; color: #b3b3b3; }
 }
