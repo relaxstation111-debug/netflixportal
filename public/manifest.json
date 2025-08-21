@@ -1,0 +1,23 @@
+{
+  "name": "Admin",
+  "short_name": "Admin",
+  "description": "Administrador",
+  "icons": [
+    {
+      "src": "https://cdn.glitch.global/4fe52089-bb45-4dcf-9012-fc1190060bb8/tusinitusineli.com?v=1749935984757",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://cdn.glitch.global/4fe52089-bb45-4dcf-9012-fc1190060bb8/tusinitusineli.com?v=1749935984757",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "display": "standalone",
+  "background_color": "#2a9d8f",
+  "theme_color": "#2a9d8f",
+  "start_url": "/index.html",
+  "scope": "/",
+  "orientation": "portrait"
+}

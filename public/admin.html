@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administrador</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1 class="title">Centro de Control</h1>
+            <button id="logout-btn" class="button-danger">Cerrar Sesión</button>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="tab-button active" data-target="tab-dashboard">📊 Dashboard</button>
+            <button class="tab-button" data-target="tab-assignments">🔗 Asignaciones</button>
+            <button class="tab-button" data-target="tab-accounts">💼 Cuentas</button>
+            <button class="tab-button" data-target="tab-clients">👥 Clientes</button>
+            <button class="tab-button" data-target="tab-expired">📜 Historial</button>
+        </div>
+
+        <div id="tab-dashboard" class="tab-content active">
+            <h2>Dashboard de Analítica</h2>
+            <div class="stats-grid" id="stats-container"></div>
+            <div class="admin-section">
+                <h3>⚠️ Vencen Próximamente (Próximos 5 Días)</h3>
+                <div class="list-container" id="expiring-soon-list"></div>
+            </div>
+            <div class="admin-section">
+                <h3>🔴 Expiradas y sin Renovar (Acción Requerida)</h3>
+                <div class="list-container" id="expired-unrenewed-list"></div>
+            </div>
+        </div>
+
+        <div id="tab-assignments" class="tab-content">
+            <h2>Gestionar Asignaciones</h2>
+            <div class="admin-section">
+                <h3>Nueva Asignación</h3>
+                <p class="subtitle" style="font-size: 0.9rem; margin-bottom: 15px;">
+                    Si el cliente no existe, se creará automáticamente al llenar su nombre y WhatsApp.
+                </p>
+                <form id="assignment-form" class="admin-form">
+                    <input type="text" id="client-name" name="client-name" placeholder="Nombre del Cliente" required>
+                    <input type="text" id="client-whatsapp" name="client-whatsapp" placeholder="N° de WhatsApp del Cliente" required>
+                    <select id="account-select" required><option value="">-- Selecciona Cuenta --</option></select>
+                    <select id="profile-select" required><option value="">-- Selecciona Perfil --</option></select>
+                    <input type="number" id="pin-input" placeholder="PIN (se autocompleta)" readonly>
+                    <button type="submit" class="button">Crear Asignación</button>
+                </form>
+            </div>
+            <div class="filters-container">
+                 <div class="search-container">
+                    <input type="text" class="search-input" id="search-assignments" placeholder="🔍 Buscar en asignaciones...">
+                 </div>
+                 <select id="filter-assignments">
+                    <option value="todos">Ver todos los pagos</option>
+                    <option value="pagado">Pagado</option>
+                    <option value="pendiente">Pendiente</option>
+                 </select>
+            </div>
+            <div class="table-container" id="assignments-table"></div>
+        </div>
+
+        <div id="tab-accounts" class="tab-content">
+            <h2>Gestionar Cuentas de Servicio</h2>
+            <form id="add-account-form" class="admin-form">
+                <input type="text" name="name" placeholder="Nombre (Ej: Cuenta #1)" required>
+                <input type="email" name="email" placeholder="Email de la cuenta" required>
+                <input type="text" name="password" placeholder="Contraseña de la cuenta" required>
+                <div class="dynamic-profiles-container" id="profiles-container"></div>
+                <button type="button" id="add-profile-btn" class="button-secondary">+ Añadir Perfil</button>
+                <button type="submit" class="button">Guardar Cuenta</button>
+            </form>
+            <div class="filters-container">
+                <div class="search-container">
+                    <input type="text" class="search-input" id="search-accounts" placeholder="🔍 Buscar por nombre o email...">
+                </div>
+                <select id="filter-accounts">
+                    <option value="todos">Ver todas las cuentas</option>
+                    <option value="yes">Con perfiles libres</option>
+                    <option value="no">Sin perfiles libres</option>
+                </select>
+            </div>
+            <div class="table-container" id="accounts-table"></div>
+        </div>
+        
+        <div id="tab-clients" class="tab-content">
+            <h2>Gestionar Clientes</h2>
+            <form id="add-client-form" class="admin-form">
+                <input type="text" name="name" placeholder="Nombre del Cliente" required>
+                <input type="text" name="whatsapp" placeholder="N° de WhatsApp (Ej: 0976...)" required>
+                <button type="submit" class="button">Agregar Cliente</button>
+            </form>
+            <div class="search-container">
+                <input type="text" class="search-input" id="search-clients" placeholder="🔍 Buscar por nombre o WhatsApp...">
+            </div>
+            <div class="table-container" id="clients-table"></div>
+        </div>
+
+        <div id="tab-expired" class="tab-content">
+            <h2>Historial de Asignaciones Expiradas</h2>
+            <div class="search-container">
+                <input type="text" class="search-input" id="search-expired" placeholder="🔍 Buscar en historial...">
+            </div>
+            <div class="table-container" id="expired-table"></div>
+        </div>
+    </div>
+
+    <div id="modal-backdrop" class="modal-backdrop">
+        <div id="modal-content" class="modal-content">
+            <h2 id="modal-title"></h2>
+            <div id="modal-body"></div>
+            <div id="modal-footer"></div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
