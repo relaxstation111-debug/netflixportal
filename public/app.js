@@ -331,63 +331,50 @@ async function handleFormSubmit(e) {
     }
 }
 
+// 👇 LA LÓGICA CORREGIDA ESTÁ AQUÍ 👇
 function handleActionClick(e) {
     const button = e.target.closest('button');
     if (!button) return;
 
-    const action = button.dataset.action || button.classList[1];
     const id = button.dataset.id;
-    const endpoint = button.dataset.endpoint;
 
-    switch (action) {
-        case 'close-modal':
-            closeModal();
-            break;
-        case 'delete-client':
-            openModal('Confirmar Eliminación', `<p>¿Seguro que quieres eliminar este cliente? Se borrará también todo su historial de asignaciones de forma permanente.</p>`, 
+    // Identificar la acción por su clase única
+    if (button.matches('.edit-client')) {
+        openEditClientModal(id);
+    } else if (button.matches('.delete-client')) {
+        openModal('Confirmar Eliminación', `<p>¿Seguro que quieres eliminar este cliente? Se borrará también todo su historial de asignaciones de forma permanente.</p>`,
             `<button class="button button-secondary" data-action="close-modal">Cancelar</button><button class="button button-danger" data-action="confirm-delete" data-endpoint="/api/admin/clients/${id}">Eliminar</button>`);
-            break;
-        case 'edit-client':
-            openEditClientModal(id);
-            break;
-        case 'save-client-edit':
-            saveClientEdit(id);
-            break;
-        case 'view-history':
-            viewClientHistory(id);
-            break;
-        case 'delete-account':
-            openModal('Confirmar Eliminación', `<p>¿Seguro que quieres eliminar esta cuenta? Todas sus asignaciones asociadas serán eliminadas permanentemente.</p>`, 
+    } else if (button.matches('.view-history')) {
+        viewClientHistory(id);
+    } else if (button.matches('.edit-account')) {
+        openEditAccountModal(id);
+    } else if (button.matches('.delete-account')) {
+        openModal('Confirmar Eliminación', `<p>¿Seguro que quieres eliminar esta cuenta? Todas sus asignaciones asociadas serán eliminadas permanentemente.</p>`,
             `<button class="button button-secondary" data-action="close-modal">Cancelar</button><button class="button button-danger" data-action="confirm-delete" data-endpoint="/api/admin/accounts/${id}">Eliminar</button>`);
-            break;
-        case 'edit-account':
-            openEditAccountModal(id);
-            break;
-        case 'save-account-edit':
-            saveAccountEdit(id);
-            break;
-        case 'toggle-status':
-            performAction('PATCH', `/api/admin/accounts/${id}/status`, 'Estado de la cuenta cambiado.');
-            break;
-        case 'delete-assignment':
-            openModal('Confirmar Eliminación', `<p>¿Seguro que quieres eliminar esta asignación?</p>`, 
+    } else if (button.matches('.toggle-status')) {
+        performAction('PATCH', `/api/admin/accounts/${id}/status`, 'Estado de la cuenta cambiado.');
+    } else if (button.matches('.delete-assignment')) {
+        openModal('Confirmar Eliminación', `<p>¿Seguro que quieres eliminar esta asignación?</p>`,
             `<button class="button button-secondary" data-action="close-modal">Cancelar</button><button class="button button-danger" data-action="confirm-delete" data-endpoint="/api/admin/assignments/${id}">Eliminar</button>`);
-            break;
-        case 'renew-assignment':
-            performAction('PATCH', `/api/admin/assignments/${id}/renew`, 'Asignación renovada por 30 días.');
-            break;
-        case 'toggle-payment':
-            performAction('PATCH', `/api/admin/assignments/${id}/payment`, 'Estado de pago cambiado.');
-            break;
-        case 'change-pin':
-            openChangePinModal(button.dataset.accountId, button.dataset.profileName, button.dataset.assignmentId);
-            break;
-        case 'save-new-pin':
-            saveNewPin(button.dataset.accountId, button.dataset.profileName, button.dataset.assignmentId);
-            break;
-        case 'confirm-delete':
-            performAction('DELETE', endpoint, 'Elemento eliminado correctamente.');
-            break;
+    } else if (button.matches('.renew-assignment')) {
+        performAction('PATCH', `/api/admin/assignments/${id}/renew`, 'Asignación renovada por 30 días.');
+    } else if (button.matches('.toggle-payment')) {
+        performAction('PATCH', `/api/admin/assignments/${id}/payment`, 'Estado de pago cambiado.');
+    } else if (button.matches('.change-pin')) {
+        openChangePinModal(button.dataset.accountId, button.dataset.profileName, button.dataset.assignmentId);
+    }
+    
+    // Acciones dentro del modal
+    else if (button.dataset.action === 'close-modal') {
+        closeModal();
+    } else if (button.dataset.action === 'save-client-edit') {
+        saveClientEdit(id);
+    } else if (button.dataset.action === 'save-account-edit') {
+        saveAccountEdit(id);
+    } else if (button.dataset.action === 'save-new-pin') {
+        saveNewPin(button.dataset.accountId, button.dataset.profileName, button.dataset.assignmentId);
+    } else if (button.dataset.action === 'confirm-delete') {
+        performAction('DELETE', button.dataset.endpoint, 'Elemento eliminado correctamente.');
     }
 }
 
@@ -455,7 +442,6 @@ async function openEditAccountModal(id) {
     const passRes = await fetch(`/api/admin/accounts/${id}/password`); 
     const { password } = await passRes.json();
     
-    // Convertir el array de perfiles a un formato editable simple
     const profilesText = account.profiles.map(p => `${p.name}:${p.pin}`).join('\n');
     
     const body = `
@@ -538,9 +524,7 @@ async function saveNewPin(accountId, profileName, assignmentId) {
     if (!newPin || newPin.length !== 4) { 
         return openModal('Error', '<p>Introduce un PIN válido de 4 dígitos.</p>'); 
     }
-    // Primero, actualizamos el PIN en la cuenta de servicio
     await performAction('PATCH', `/api/admin/accounts/${accountId}/profiles`, null, { body: { profileName, newPin } });
-    // Luego, eliminamos la asignación expirada para liberar el perfil
     await performAction('DELETE', `/api/admin/assignments/${assignmentId}`, 'PIN actualizado y perfil liberado.');
 }
 
@@ -699,10 +683,10 @@ async function loadClientHistory(whatsapp) {
     const historyContainer = document.getElementById('client-history');
     try {
         const res = await fetch(`/api/client/history/${encodeURIComponent(whatsapp)}`);
-        if (!res.ok) throw new Error(); // Error silencioso
+        if (!res.ok) throw new Error();
         const history = await res.json();
 
-        if (history.length > 1) { // Solo mostrar si hay más de una entrada
+        if (history.length > 1) {
             let html = '<h3 style="margin-top: 2rem; margin-bottom: 1rem;">Tu Historial de Asignaciones</h3><ul class="history-list" style="list-style: none; padding: 0;">';
             history.forEach(item => {
                 html += `<li style="background: #1F1F1F; padding: 10px; border-radius: 8px; margin-bottom: 5px;"><strong>${new Date(item.assignedDate).toLocaleDateString('es-PY')}</strong><span> - Cuenta: ${item.serviceAccount.name}</span><span> - Estado: ${item.paymentStatus}</span></li>`;
@@ -711,7 +695,6 @@ async function loadClientHistory(whatsapp) {
             historyContainer.innerHTML = html;
         }
     } catch (error) { 
-        // No mostrar error si el historial no carga
         console.error("No se pudo cargar el historial del cliente.");
     }
 }
