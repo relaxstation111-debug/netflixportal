@@ -62,7 +62,10 @@ app.use(session({
     resave: false,
     saveUninitialized: true,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production', // true en producción (HTTPS)
+        // 👇 AQUÍ ESTÁ EL CAMBIO IMPORTANTE 👇
+        // Ponemos 'secure' en 'false' para desarrollo local (HTTP).
+        // En un servidor real con HTTPS, esto debería ser 'true'.
+        secure: false, 
         httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 7 // 7 días de sesión
     }
@@ -157,10 +160,8 @@ app.put('/api/admin/accounts/:id', checkAuth, async (req, res) => {
     try {
         const { name, email, password, profiles } = req.body;
         
-        // El formato de perfiles ahora es un array de objetos, no es necesario convertir
         const accountData = { name, email, profiles };
 
-        // Solo encriptar la contraseña si ha cambiado
         const oldAccount = await ServiceAccount.findById(req.params.id);
         if (password !== decrypt(oldAccount.password)) {
              accountData.password = encrypt(password);
@@ -192,13 +193,10 @@ app.patch('/api/admin/accounts/:accountId/profiles', checkAuth, async (req, res)
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
-// CORREGIDO: Borrado en cascada de asignaciones
 app.delete('/api/admin/accounts/:id', checkAuth, async (req, res) => {
     try {
         const accountId = req.params.id;
-        // Primero, eliminar todas las asignaciones asociadas a esta cuenta
         await Assignment.deleteMany({ serviceAccount: accountId });
-        // Luego, eliminar la cuenta
         await ServiceAccount.findByIdAndDelete(accountId);
         res.status(200).json({ message: 'Cuenta y sus asignaciones eliminadas' });
     } catch (error) { res.status(500).json({ message: error.message }); }
@@ -238,13 +236,10 @@ app.get('/api/admin/clients/search', checkAuth, async (req, res) => {
     } catch (error) { res.status(500).json({ message: 'Error al buscar clientes.' }); }
 });
 
-// CORREGIDO: Borrado en cascada de asignaciones
 app.delete('/api/admin/clients/:id', checkAuth, async (req, res) => {
     try {
         const clientId = req.params.id;
-        // Primero, eliminar todas las asignaciones de este cliente
         await Assignment.deleteMany({ client: clientId });
-        // Luego, eliminar al cliente
         await Client.findByIdAndDelete(clientId);
         res.status(200).json({ message: 'Cliente y su historial de asignaciones eliminados' });
     } catch (error) { res.status(500).json({ message: error.message }); }
@@ -273,14 +268,12 @@ app.post('/api/admin/assignments', checkAuth, async (req, res) => {
         const { clientName, clientWhatsapp, accountId, profileName, pin } = req.body;
         const normalizedNumber = normalizeWhatsApp(clientWhatsapp);
 
-        // Buscar o crear cliente
         let client = await Client.findOneAndUpdate(
             { whatsapp: normalizedNumber },
             { $setOnInsert: { name: clientName, whatsapp: normalizedNumber } },
             { upsert: true, new: true, runValidators: true }
         );
 
-        // Verificar si el cliente ya tiene una asignación activa
         const existingAssignment = await Assignment.findOne({ client: client._id, expiryDate: { $gte: new Date() } });
         if (existingAssignment) {
             return res.status(400).json({ message: 'Este cliente ya tiene una asignación activa.' });
@@ -290,7 +283,7 @@ app.post('/api/admin/assignments', checkAuth, async (req, res) => {
         expiryDate.setDate(expiryDate.getDate() + 30);
         const newAssignment = new Assignment({
             client: client._id, serviceAccount: accountId, profileName, pin, expiryDate,
-            paymentStatus: 'Pagado' // Por defecto al crear una nueva es 'Pagado'
+            paymentStatus: 'Pagado'
         });
         await newAssignment.save();
         res.status(201).json(newAssignment);
@@ -367,7 +360,6 @@ app.get('/api/client/history/:whatsapp', async (req, res) => {
 
 
 // --- RUTAS PARA SERVIR ARCHIVOS HTML ---
-// Redirige al panel si ya hay sesión, si no, al login.
 app.get('/admin', (req, res) => {
     if (req.session.isAdmin) {
         res.sendFile(path.join(__dirname, 'public', 'admin.html'));
@@ -376,7 +368,6 @@ app.get('/admin', (req, res) => {
     }
 });
 
-// Sirve el index.html en la raíz
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
