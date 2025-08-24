@@ -4,21 +4,31 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso de Administrador</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#121212">
 </head>
 <body>
+    <div class="background-image"></div>
+
     <div class="container">
         <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Logonetflix.png" alt="Logo" class="logo">
         <h1 class="title">Área Restringida</h1>
         <p class="subtitle">Ingresa el código de acceso para continuar al panel de control.</p>
+        
         <form id="admin-login-form">
             <div class="input-group">
                 <input type="password" id="admin-password" placeholder="Código de Acceso" required>
             </div>
             <button type="submit" class="button">Acceder</button>
         </form>
+        
         <p id="error-message" class="error-text" style="display: none;"></p>
     </div>
+
     <script src="app.js"></script>
 </body>
 </html>

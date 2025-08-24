@@ -4,16 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Panel de Administrador</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#121212">
 </head>
 <body class="admin-body">
-    <div class="admin-container">
-        <div class="admin-header">
-            <h1 id="page-title" class="title">Dashboard</h1>
-            <button id="logout-btn" class="button-danger">Salir</button>
-        </div>
 
-        <div class="content-area">
+    <div class="admin-container">
+        <header class="admin-header">
+            <h1 id="page-title" class="title">Dashboard</h1>
+            <button id="logout-btn" class="button button-danger">Salir</button>
+        </header>
+
+        <main class="content-area">
             <div id="tab-dashboard" class="tab-content active">
                 <div class="stats-grid" id="stats-container"></div>
                 <div class="admin-section">
@@ -31,9 +37,8 @@
                     <h3>Nueva Asignación</h3>
                     <form id="assignment-form" class="admin-form">
                         <div class="form-group search-select-container">
-                             <input type="text" id="client-search-input" placeholder="Buscar o añadir cliente..." autocomplete="off">
+                             <input type="text" id="client-search-input" placeholder="Buscar o añadir cliente por nombre o WhatsApp..." autocomplete="off">
                              <div id="client-search-results" class="search-results"></div>
-                             <input type="hidden" id="selected-client-id">
                              <input type="hidden" id="client-name" name="client-name">
                              <input type="hidden" id="client-whatsapp" name="client-whatsapp">
                         </div>
@@ -63,8 +68,8 @@
                         <input type="text" name="name" placeholder="Nombre (Ej: Cuenta #1)" required>
                         <input type="email" name="email" placeholder="Email de la cuenta" required>
                         <input type="text" name="password" placeholder="Contraseña de la cuenta" required>
-                        <div class="dynamic-profiles-container" id="profiles-container"></div>
-                        <button type="button" id="add-profile-btn" class="button-secondary">+ Añadir Perfil</button>
+                        <div class="dynamic-profiles-container" id="profiles-container" style="grid-column: 1 / -1;"></div>
+                        <button type="button" id="add-profile-btn" class="button button-secondary">+ Añadir Perfil</button>
                         <button type="submit" class="button">Guardar Cuenta</button>
                     </form>
                 </div>
@@ -90,12 +95,12 @@
                         <button type="submit" class="button">Agregar Cliente</button>
                     </form>
                 </div>
-                <div class="search-container">
+                <div class="search-container" style="margin-bottom: 1.5rem;">
                     <input type="text" class="search-input" id="search-clients" placeholder="🔍 Buscar por nombre o WhatsApp...">
                 </div>
                 <div class="table-container" id="clients-table"></div>
             </div>
-        </div>
+        </main>
     </div>
 
     <nav class="bottom-nav">

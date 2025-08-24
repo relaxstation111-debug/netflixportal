@@ -1,18 +1,24 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
+    <meta charset="UTF--8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Acceso Cliente</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#E50914">
+    <meta name="theme-color" content="#121212">
 </head>
 <body>
+    <div class="background-image"></div>
+
     <div class="container">
         <img src="https://upload.wikimedia.org/wikipedia/commons/7/7a/Logonetflix.png" alt="Logo" class="logo">
         <h1 class="title">Iniciar Sesión</h1>
         <p class="subtitle">Ingresa tu número de WhatsApp para ver los detalles de tu acceso.</p>
+        
         <form id="login-form">
             <div class="input-group">
                 <input type="tel" id="whatsapp" placeholder="Tu número de WhatsApp" required>
@@ -20,8 +26,7 @@
             <button type="submit" class="button">Ver Mi Acceso</button>
         </form>
     </div>
+
+    <script src="app.js"></script>
 </body>
-<script src="app.js"></script> </body>
 </html>
-
-

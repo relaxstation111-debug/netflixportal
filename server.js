@@ -13,17 +13,22 @@ const encrypt = (text) => {
 
 const decrypt = (ciphertext) => {
     if (!ciphertext) return '';
-    const bytes = CryptoJS.AES.decrypt(ciphertext, process.env.CRYPTO_SECRET_KEY);
-    return bytes.toString(CryptoJS.enc.Utf8);
+    try {
+        const bytes = CryptoJS.AES.decrypt(ciphertext, process.env.CRYPTO_SECRET_KEY);
+        const originalText = bytes.toString(CryptoJS.enc.Utf8);
+        return originalText;
+    } catch (error) {
+        console.error("Error al desencriptar:", error);
+        return ''; // Retorna vacío si hay un error
+    }
 };
-
 
 // --- MODELOS DE DATOS (Schemas) ---
 const ClientSchema = new mongoose.Schema({
     name: { type: String, required: true },
     whatsapp: { type: String, required: true, unique: true },
     notes: { type: String, default: '' }
-});
+}, { timestamps: true });
 const Client = mongoose.model('Client', ClientSchema);
 
 const ServiceAccountSchema = new mongoose.Schema({
@@ -32,7 +37,7 @@ const ServiceAccountSchema = new mongoose.Schema({
     password: { type: String, required: true },
     profiles: [{ _id: false, name: String, pin: String }],
     status: { type: String, enum: ['Activa', 'Inactiva'], default: 'Activa' }
-});
+}, { timestamps: true });
 const ServiceAccount = mongoose.model('ServiceAccount', ServiceAccountSchema);
 
 const AssignmentSchema = new mongoose.Schema({
@@ -43,7 +48,7 @@ const AssignmentSchema = new mongoose.Schema({
     assignedDate: { type: Date, default: Date.now },
     expiryDate: { type: Date, required: true },
     paymentStatus: { type: String, enum: ['Pagado', 'Pendiente'], default: 'Pendiente' }
-});
+}, { timestamps: true });
 const Assignment = mongoose.model('Assignment', AssignmentSchema);
 
 
@@ -53,11 +58,12 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(session({
-    secret: 'un_secreto_muy_largo_y_dificil_de_adivinar',
+    secret: process.env.SESSION_SECRET || 'un_secreto_muy_largo_y_dificil_de_adivinar',
     resave: false,
     saveUninitialized: true,
     cookie: { 
-        secure: false, // Poner en true si usas HTTPS
+        secure: process.env.NODE_ENV === 'production', // true en producción (HTTPS)
+        httpOnly: true,
         maxAge: 1000 * 60 * 60 * 24 * 7 // 7 días de sesión
     }
 }));
@@ -65,14 +71,15 @@ app.use(session({
 // --- MIDDLEWARE DE AUTENTICACIÓN ---
 const checkAuth = (req, res, next) => {
     if (req.session.isAdmin) {
-        next();
-    } else {
-        res.status(401).json({ message: 'Acceso no autorizado' });
+        return next();
     }
+    res.status(401).json({ message: 'Acceso no autorizado. Por favor, inicie sesión.' });
 };
 
 // --- CONEXIÓN A MONGODB ---
-mongoose.connect(process.env.MONGO_URI).then(() => console.log('✅ Conectado a MongoDB')).catch(err => console.error('❌ Error al conectar a MongoDB:', err));
+mongoose.connect(process.env.MONGO_URI)
+    .then(() => console.log('✅ Conectado a MongoDB'))
+    .catch(err => console.error('❌ Error al conectar a MongoDB:', err));
 
 // --- FUNCIÓN UTILITARIA CLAVE ---
 function normalizeWhatsApp(phone) {
@@ -96,19 +103,34 @@ app.post('/api/admin/login', (req, res) => {
         res.status(401).json({ message: 'Contraseña incorrecta' });
     }
 });
-app.get('/api/admin/logout', (req, res) => {
-    req.session.destroy();
-    res.status(200).json({ message: 'Sesión cerrada' });
+
+app.post('/api/admin/logout', (req, res) => {
+    req.session.destroy(err => {
+        if (err) {
+            return res.status(500).json({ message: 'No se pudo cerrar la sesión.' });
+        }
+        res.clearCookie('connect.sid'); // Limpia la cookie de sesión
+        res.status(200).json({ message: 'Sesión cerrada' });
+    });
+});
+
+// Chequea si la sesión sigue activa
+app.get('/api/admin/auth-check', (req, res) => {
+    if (req.session.isAdmin) {
+        res.status(200).json({ isAuthenticated: true });
+    } else {
+        res.status(401).json({ isAuthenticated: false });
+    }
 });
 
 
-// --- RUTAS DE LA API (ADMIN) ---
+// --- RUTAS DE LA API (PROTEGIDAS) ---
 
+// OBTENER TODOS LOS DATOS
 app.get('/api/admin/data', checkAuth, async (req, res) => {
     try {
         const now = new Date();
-        const fiveDaysFromNow = new Date();
-        fiveDaysFromNow.setDate(now.getDate() + 5);
+        const fiveDaysFromNow = new Date(now.getTime() + 5 * 24 * 60 * 60 * 1000);
 
         const [clients, serviceAccounts, activeAssignments, expiredAssignments, expiringSoonAssignments] = await Promise.all([
             Client.find().sort({ name: 1 }),
@@ -118,7 +140,7 @@ app.get('/api/admin/data', checkAuth, async (req, res) => {
             Assignment.find({ expiryDate: { $gte: now, $lte: fiveDaysFromNow } }).populate('client', 'name whatsapp').populate('serviceAccount', 'name email').sort({ expiryDate: 1 })
         ]);
         res.json({ clients, serviceAccounts, activeAssignments, expiredAssignments, expiringSoonAssignments });
-    } catch (error) { res.status(500).json({ message: error.message }); }
+    } catch (error) { res.status(500).json({ message: 'Error en el servidor: ' + error.message }); }
 });
 
 // CUENTAS DE SERVICIO
@@ -134,18 +156,17 @@ app.post('/api/admin/accounts', checkAuth, async (req, res) => {
 app.put('/api/admin/accounts/:id', checkAuth, async (req, res) => {
     try {
         const { name, email, password, profiles } = req.body;
-        const profilesArray = profiles.split(',').map(p => {
-            const [profileName, pin] = p.split(':');
-            return { name: profileName.trim(), pin: pin ? pin.trim() : '0000' };
-        });
         
+        // El formato de perfiles ahora es un array de objetos, no es necesario convertir
+        const accountData = { name, email, profiles };
+
+        // Solo encriptar la contraseña si ha cambiado
         const oldAccount = await ServiceAccount.findById(req.params.id);
-        let finalPassword = oldAccount.password;
         if (password !== decrypt(oldAccount.password)) {
-             finalPassword = encrypt(password);
+             accountData.password = encrypt(password);
         }
 
-        const updatedAccount = await ServiceAccount.findByIdAndUpdate(req.params.id, { name, email, password: finalPassword, profiles: profilesArray }, { new: true });
+        const updatedAccount = await ServiceAccount.findByIdAndUpdate(req.params.id, accountData, { new: true });
         res.status(200).json(updatedAccount);
     } catch (error) { res.status(400).json({ message: error.message }); }
 });
@@ -171,10 +192,15 @@ app.patch('/api/admin/accounts/:accountId/profiles', checkAuth, async (req, res)
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
+// CORREGIDO: Borrado en cascada de asignaciones
 app.delete('/api/admin/accounts/:id', checkAuth, async (req, res) => {
     try {
-        await ServiceAccount.findByIdAndDelete(req.params.id);
-        res.status(200).json({ message: 'Cuenta eliminada' });
+        const accountId = req.params.id;
+        // Primero, eliminar todas las asignaciones asociadas a esta cuenta
+        await Assignment.deleteMany({ serviceAccount: accountId });
+        // Luego, eliminar la cuenta
+        await ServiceAccount.findByIdAndDelete(accountId);
+        res.status(200).json({ message: 'Cuenta y sus asignaciones eliminadas' });
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
@@ -196,11 +222,10 @@ app.post('/api/admin/clients', checkAuth, async (req, res) => {
     } catch (error) { res.status(400).json({ message: 'Error: Cliente ya existe o datos inválidos.' }); }
 });
 
-// <-- NUEVA RUTA DE BÚSQUEDA ---
 app.get('/api/admin/clients/search', checkAuth, async (req, res) => {
     try {
         const searchTerm = req.query.term;
-        if (!searchTerm) {
+        if (!searchTerm || searchTerm.length < 2) {
             return res.json([]);
         }
         const clients = await Client.find({
@@ -208,17 +233,20 @@ app.get('/api/admin/clients/search', checkAuth, async (req, res) => {
                 { name: { $regex: searchTerm, $options: 'i' } },
                 { whatsapp: { $regex: searchTerm, $options: 'i' } }
             ]
-        }).limit(5); // Limita a 5 resultados para no sobrecargar
+        }).limit(5);
         res.json(clients);
-    } catch (error) {
-        res.status(500).json({ message: 'Error al buscar clientes.' });
-    }
+    } catch (error) { res.status(500).json({ message: 'Error al buscar clientes.' }); }
 });
 
+// CORREGIDO: Borrado en cascada de asignaciones
 app.delete('/api/admin/clients/:id', checkAuth, async (req, res) => {
     try {
-        await Client.findByIdAndDelete(req.params.id);
-        res.status(200).json({ message: 'Cliente eliminado' });
+        const clientId = req.params.id;
+        // Primero, eliminar todas las asignaciones de este cliente
+        await Assignment.deleteMany({ client: clientId });
+        // Luego, eliminar al cliente
+        await Client.findByIdAndDelete(clientId);
+        res.status(200).json({ message: 'Cliente y su historial de asignaciones eliminados' });
     } catch (error) { res.status(500).json({ message: error.message }); }
 });
 
@@ -243,21 +271,17 @@ app.get('/api/admin/clients/:id/history', checkAuth, async (req, res) => {
 app.post('/api/admin/assignments', checkAuth, async (req, res) => {
     try {
         const { clientName, clientWhatsapp, accountId, profileName, pin } = req.body;
-        let clientId;
-
         const normalizedNumber = normalizeWhatsApp(clientWhatsapp);
-        let client = await Client.findOne({ whatsapp: normalizedNumber });
 
-        if (!client) {
-            if (!clientName) {
-                return res.status(400).json({ message: 'El nombre es obligatorio para un cliente nuevo.' });
-            }
-            client = new Client({ name: clientName, whatsapp: normalizedNumber });
-            await client.save();
-        }
-        clientId = client._id;
+        // Buscar o crear cliente
+        let client = await Client.findOneAndUpdate(
+            { whatsapp: normalizedNumber },
+            { $setOnInsert: { name: clientName, whatsapp: normalizedNumber } },
+            { upsert: true, new: true, runValidators: true }
+        );
 
-        const existingAssignment = await Assignment.findOne({ client: clientId, expiryDate: { $gte: new Date() } });
+        // Verificar si el cliente ya tiene una asignación activa
+        const existingAssignment = await Assignment.findOne({ client: client._id, expiryDate: { $gte: new Date() } });
         if (existingAssignment) {
             return res.status(400).json({ message: 'Este cliente ya tiene una asignación activa.' });
         }
@@ -265,8 +289,8 @@ app.post('/api/admin/assignments', checkAuth, async (req, res) => {
         const expiryDate = new Date();
         expiryDate.setDate(expiryDate.getDate() + 30);
         const newAssignment = new Assignment({
-            client: clientId, serviceAccount: accountId, profileName, pin, expiryDate,
-            paymentStatus: 'Pagado'
+            client: client._id, serviceAccount: accountId, profileName, pin, expiryDate,
+            paymentStatus: 'Pagado' // Por defecto al crear una nueva es 'Pagado'
         });
         await newAssignment.save();
         res.status(201).json(newAssignment);
@@ -303,7 +327,6 @@ app.patch('/api/admin/assignments/:id/payment', checkAuth, async (req, res) => {
 
 
 // --- RUTAS PÚBLICAS (CLIENTE) ---
-
 app.get('/api/client/access/:whatsapp', async (req, res) => {
     try {
         const normalizedNumber = normalizeWhatsApp(req.params.whatsapp);
@@ -311,7 +334,7 @@ app.get('/api/client/access/:whatsapp', async (req, res) => {
         if (!client) return res.status(404).json({ message: 'Cliente no encontrado.' });
         
         const assignment = await Assignment.findOne({ client: client._id, expiryDate: { $gte: new Date() } }).populate('serviceAccount', 'email password');
-        if (!assignment) return res.status(404).json({ message: 'No tienes una asignación activa.' });
+        if (!assignment) return res.status(404).json({ message: 'No tienes una asignación activa en este momento.' });
         
         res.json({
             clientName: client.name,
@@ -344,10 +367,16 @@ app.get('/api/client/history/:whatsapp', async (req, res) => {
 
 
 // --- RUTAS PARA SERVIR ARCHIVOS HTML ---
+// Redirige al panel si ya hay sesión, si no, al login.
 app.get('/admin', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'admin_login.html'));
+    if (req.session.isAdmin) {
+        res.sendFile(path.join(__dirname, 'public', 'admin.html'));
+    } else {
+        res.sendFile(path.join(__dirname, 'public', 'admin_login.html'));
+    }
 });
 
+// Sirve el index.html en la raíz
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
